@@ -1,5 +1,5 @@
 {
   "appId": "com.samssimplebudget.app",
   "appName": "SamsSimpleBudget",
-  "webDir": "dist"
+  "webDir": "www"
 }

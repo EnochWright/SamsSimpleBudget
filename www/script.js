@@ -1,7 +1,3 @@
-import { Share } from '@capacitor/share';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { Capacitor } from '@capacitor/core';
-
 // State
 let state = {
     budget: 0,
@@ -20,6 +16,7 @@ const elements = {
     amountInput: document.getElementById('amountInput'),
     addBtn: document.getElementById('addBtn'),
     entriesList: document.getElementById('entriesList'),
+    viewBtn: document.getElementById('viewBtn'),
     backupBtn: document.getElementById('backupBtn'),
     resetBtn: document.getElementById('resetBtn')
 };
@@ -61,6 +58,9 @@ function setupListeners() {
         }
     });
 
+    // View Toggle
+    elements.viewBtn.addEventListener('click', toggleView);
+
     // Backup
     elements.backupBtn.addEventListener('click', exportData);
 
@@ -74,11 +74,25 @@ function loadData() {
     if (saved) {
         state = JSON.parse(saved);
     }
+
+    // Restore View Preference
+    const isWide = localStorage.getItem('samsBudget_wideMode') === 'true';
+    if (isWide) {
+        document.querySelector('.app-container').classList.add('wide-mode');
+    }
 }
 
 function saveData() {
     localStorage.setItem('samsBudget_v1', JSON.stringify(state));
     render();
+}
+
+function toggleView() {
+    const container = document.querySelector('.app-container');
+    container.classList.toggle('wide-mode');
+
+    const isWide = container.classList.contains('wide-mode');
+    localStorage.setItem('samsBudget_wideMode', isWide);
 }
 
 function saveBudget() {
@@ -108,7 +122,14 @@ function addEntry() {
     };
 
     state.entries.unshift(entry); // Add to top
-    saveData();
+
+    // Save without full render
+    localStorage.setItem('samsBudget_v1', JSON.stringify(state));
+
+    // Optimistic UI Update (No Flash)
+    const li = createEntryElement(entry);
+    elements.entriesList.prepend(li);
+    updateBalanceUI();
 
     // Clear inputs
     elements.descInput.value = '';
@@ -119,46 +140,66 @@ function addEntry() {
 function deleteEntry(id) {
     if (confirm('Delete this entry?')) {
         state.entries = state.entries.filter(e => e.id !== id);
-        saveData();
+        localStorage.setItem('samsBudget_v1', JSON.stringify(state));
+
+        // Remove from DOM without flash
+        const btn = document.querySelector(`.delete-btn[data-id="${id}"]`);
+        if (btn) {
+            const li = btn.closest('.entry-item');
+            li.remove();
+        }
+        updateBalanceUI();
     }
 }
 
-async function exportData() {
-    const dataStr = JSON.stringify(state, null, 2);
-    const fileName = `budget-backup-${new Date().toISOString().split('T')[0]}.json`;
+// Separate UI updates for cleaner code
+function updateBalanceUI() {
+    const totalExpenses = state.entries.reduce((sum, e) => sum + e.amount, 0);
+    const remaining = state.budget - totalExpenses;
 
-    if (Capacitor.isNativePlatform()) {
-        try {
-            const result = await Filesystem.writeFile({
-                path: fileName,
-                data: dataStr,
-                directory: Directory.Cache,
-                encoding: Encoding.UTF8
-            });
+    elements.budgetDisplay.textContent = `$${state.budget.toFixed(2)}`;
+    elements.remainingAmount.textContent = remaining.toFixed(2);
 
-            await Share.share({
-                title: 'Backup Data',
-                text: 'Here is your budget backup.',
-                url: result.uri,
-                dialogTitle: 'Export Budget Backup'
-            });
-        } catch (e) {
-            console.error('Export failed', e);
-            alert('Export failed: ' + e.message);
-        }
+    if (remaining < 0) {
+        elements.remainingAmount.style.color = '#d32f2f';
     } else {
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        // Create temporary link to trigger download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        elements.remainingAmount.style.color = '#1a1a1a';
     }
+}
+
+function createEntryElement(entry) {
+    const li = document.createElement('li');
+    li.className = 'entry-item';
+    li.innerHTML = `
+        <div class="entry-info">
+            <h3>${entry.desc}</h3>
+            <p>${entry.date}</p>
+        </div>
+        <div class="entry-actions">
+            <span class="amount">-$${entry.amount.toFixed(2)}</span>
+            <button class="delete-btn" data-id="${entry.id}" title="Delete">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    return li;
+}
+
+function exportData() {
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budget-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function resetData() {
@@ -177,41 +218,12 @@ function resetData() {
 
 // Render
 function render() {
-    // 1. Calculate Balance
-    const totalExpenses = state.entries.reduce((sum, e) => sum + e.amount, 0);
-    const remaining = state.budget - totalExpenses;
+    updateBalanceUI();
 
-    // 2. Update Header
-    elements.budgetDisplay.textContent = `$${state.budget.toFixed(2)}`;
-    elements.remainingAmount.textContent = remaining.toFixed(2);
-
-    // Color code balance
-    if (remaining < 0) {
-        elements.remainingAmount.style.color = '#d32f2f'; // Red if over budget
-    } else {
-        elements.remainingAmount.style.color = '#1a1a1a'; // Default
-    }
-
-    // 3. Render List
+    // Render List
     elements.entriesList.innerHTML = '';
     state.entries.forEach(entry => {
-        const li = document.createElement('li');
-        li.className = 'entry-item';
-        li.innerHTML = `
-            <div class="entry-info">
-                <h3>${entry.desc}</h3>
-                <p>${entry.date}</p>
-            </div>
-            <div class="entry-actions">
-                <span class="amount">-$${entry.amount.toFixed(2)}</span>
-                <button class="delete-btn" data-id="${entry.id}" title="Delete">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
+        const li = createEntryElement(entry);
         elements.entriesList.appendChild(li);
     });
 }

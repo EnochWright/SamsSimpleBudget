@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sam's Simple Budget</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="favicon.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Sam's Simple Budget</h1>
+            <div class="header-actions">
+                <button id="viewBtn" class="icon-btn" title="Toggle View">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+                <button id="backupBtn" class="icon-btn" title="Backup Data">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="left-group">
+            <section class="summary-card">
+                <div class="balance-info">
+                    <span class="label">Remaining</span>
+                    <div class="amount-display">
+                        <span class="currency">$</span>
+                        <span id="remainingAmount">0.00</span>
+                    </div>
+                </div>
+                <div class="budget-info">
+                    <div class="row">
+                        <span>Monthly Budget</span>
+                        <span id="budgetDisplay">$0.00</span>
+                    </div>
+                    <!-- Hidden input for editing budget -->
+                    <div class="budget-edit hidden" id="budgetEdit">
+                        <input type="number" id="budgetInput" placeholder="Set Budget">
+                        <button id="saveBudgetBtn">Save</button>
+                        <button id="resetBtn" class="danger-btn">Reset Data</button>
+                    </div>
+                    <button id="editBudgetBtn" class="text-btn">Edit</button>
+                </div>
+            </section>
+
+            <section class="add-entry-section">
+                <div class="input-group">
+                    <input type="text" id="descInput" placeholder="What was it for?">
+                </div>
+                <div class="input-group row">
+                    <input type="number" id="amountInput" placeholder="0.00">
+                    <button id="addBtn">Add</button>
+                </div>
+            </section>
+        </div>
+
+        <section class="transactions-list">
+            <h2>Recent Entries</h2>
+            <ul id="entriesList">
+                <!-- Entries will be injected here -->
+            </ul>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -37,13 +37,19 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    transition: max-width 0.3s ease;
 }
 
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 10px;
+    padding-bottom: 20px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
 }
 
 h1 {
@@ -179,8 +185,60 @@ input:focus {
     padding: 0 24px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: max-width 0.3s ease;
     white-space: nowrap;
+}
+
+/* Wide Mode Styles (2 Columns) */
+.app-container.wide-mode {
+    max-width: 1000px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    column-gap: 24px;
+}
+
+/* Header spans full width */
+.app-container.wide-mode header {
+    grid-column: 1 / -1;
+}
+
+/* Left Column Group */
+.app-container.wide-mode .left-group {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Right Column: Transactions List spans down */
+.app-container.wide-mode .transactions-list {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+/* Mobile Wrapper Style (Default) */
+.left-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Responsive Fallback */
+@media (max-width: 768px) {
+    .app-container.wide-mode {
+        display: flex;
+        max-width: 480px;
+        flex-direction: column;
+    }
+
+    .app-container.wide-mode header,
+    .app-container.wide-mode .transactions-list,
+    .app-container.wide-mode .left-group {
+        grid-column: auto;
+        grid-row: auto;
+    }
 }
 
 .danger-btn {
